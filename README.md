@@ -1,5 +1,5 @@
 [![Discord](https://img.shields.io/discord/938287290806042626?label=Discord&logo=discord&style=flat&color=7289DA)](https://discord.gg/jTSmEzaR)
-![Go](https://img.shields.io/badge/Go-1.20-blue?logo=go&logoColor=white)
+![Go](https://img.shields.io/badge/Go-1.22.2-blue?logo=go&logoColor=white)
 
 # jito-go-rpc
 Jito JSON-RPC Go SDK
