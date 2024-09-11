@@ -28,3 +28,11 @@ func (c *JitoJsonRpcClient) SendBundle(params interface{}) (json.RawMessage, err
 	}
 	return c.sendRequest(endpoint, "sendBundle", params)
 }
+
+func (c *JitoJsonRpcClient) GetInflightBundleStatuses(params interface{}) (json.RawMessage, error) {
+	endpoint := "/bundles"
+	if c.UUID != "" {
+		endpoint = fmt.Sprintf("%s?uuid=%s", endpoint, c.UUID)
+	}
+	return c.sendRequest(endpoint, "getInflightBundleStatuses", params)
+}
