@@ -18,6 +18,7 @@ func (c *JitoJsonRpcClient) GetBundleStatuses(params interface{}) (json.RawMessa
 	if c.UUID != "" {
 		endpoint = fmt.Sprintf("%s?uuid=%s", endpoint, c.UUID)
 	}
+	params := [][]string{bundleIds}
 	return c.sendRequest(endpoint, "getBundleStatuses", params)
 }
 
