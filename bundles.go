@@ -6,6 +6,10 @@ import (
 	"math/rand"
 )
 
+type TipAccount struct {
+	Address string `json:"address"`
+}
+
 type BundleStatusResponse struct {
 	Context struct {
 		Slot int64 `json:"slot"`
