@@ -38,13 +38,16 @@ Install the SDK using go get:
 go get github.com/jito-labs/jito-go-rpc
 ```
 
+```bash
+go mod tidy
+```
 ## Usage Examples
 
 ### Basic Transaction Example
 
 To run the basic transaction example:
 
-1. Ensure your environment is set up in `basic_txn.go`:
+1. Ensure your environment is set up in `examples/basic_txn/main.go`:
 
    ```go
    // Load the sender's keypair
@@ -63,14 +66,14 @@ To run the basic transaction example:
 
 2. Run the example:
    ```bash
-   go run basic_txn.go
+   go run examples/basic_txn/main.go
    ```
 
 ### Basic Bundle Example
 
 To run the basic bundle example:
 
-1. Ensure your environment is set up in `basic_bundle.go`:
+1. Ensure your environment is set up in `examples/basic_bundle/main.go`:
 
    ```go
    // Load the sender's keypair
@@ -89,7 +92,7 @@ To run the basic bundle example:
 
 2. Run the example:
    ```bash
-   go run basic_bundle.go
+   go run examples/basic_bundle/main.go
    ```
 
 These examples demonstrate how to set up and run basic transactions and bundles using the Jito Go RPC SDK. Make sure to replace the wallet path and receiver key with your actual values.
