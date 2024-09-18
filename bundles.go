@@ -39,18 +39,18 @@ func (c *JitoJsonRpcClient) GetRandomTipAccount() (*TipAccount, error) {
 		return nil, err
 	}
 
-	var tipAccounts []TipAccount
-	err = json.Unmarshal(rawResponse, &tipAccounts)
+	var tipAddresses []string
+	err = json.Unmarshal(rawResponse, &tipAddresses)
 	if err != nil {
 		return nil, fmt.Errorf("failed to unmarshal tip accounts: %w", err)
 	}
 
-	if len(tipAccounts) == 0 {
+	if len(tipAddresses) == 0 {
 		return nil, fmt.Errorf("no tip accounts available")
 	}
 
-	randomIndex := rand.Intn(len(tipAccounts))
-	return &tipAccounts[randomIndex], nil
+	randomIndex := rand.Intn(len(tipAddresses))
+	return &TipAccount{Address: tipAddresses[randomIndex]}, nil
 }
 
 func (c *JitoJsonRpcClient) GetBundleStatuses(bundleIds []string) (*BundleStatusResponse, error) {
