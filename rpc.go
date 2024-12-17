@@ -22,8 +22,10 @@ func (c *JitoJsonRpcClient) sendRequest(endpoint, method string, params interfac
 		return nil, fmt.Errorf("error marshaling request: %w", err)
 	}
 
-	fmt.Printf("Sending request to: %s\n", url)
-	fmt.Printf("Request body: %s\n", string(requestBody))
+	if c.isDebugEnabled() {
+		fmt.Printf("Sending request to: %s\n", url)
+		fmt.Printf("Request body: %s\n", string(requestBody))
+	}
 
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(requestBody))
 	if err != nil {
@@ -41,7 +43,9 @@ func (c *JitoJsonRpcClient) sendRequest(endpoint, method string, params interfac
 	}
 	defer resp.Body.Close()
 
-	fmt.Printf("Response status: %s\n", resp.Status)
+	if c.isDebugEnabled() {
+		fmt.Printf("Response status: %s\n", resp.Status)
+	}
 
 	var jsonResp JsonRpcResponse
 	err = json.NewDecoder(resp.Body).Decode(&jsonResp)
@@ -53,7 +57,9 @@ func (c *JitoJsonRpcClient) sendRequest(endpoint, method string, params interfac
 		return nil, fmt.Errorf("RPC error: %s", jsonResp.Error.Message)
 	}
 
-	fmt.Printf("Response body: %s\n", string(jsonResp.Result))
+	if c.isDebugEnabled() {
+		fmt.Printf("Response body: %s\n", string(jsonResp.Result))
+	}
 
 	return jsonResp.Result, nil
 }
