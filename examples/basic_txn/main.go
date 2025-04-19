@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
@@ -23,7 +24,8 @@ func main() {
 
 	// Initialize Jito client
 	jitoClient := jitorpc.NewJitoJsonRpcClient("https://mainnet.block-engine.jito.wtf/api/v1", "")
-
+	debug := true
+	jitoClient.Debug= &debug
 	// Load wallet from local path
 	walletPath := "/path/to/wallet.json"
 	walletData, err := os.ReadFile(walletPath)
@@ -40,7 +42,7 @@ func main() {
 	privateKey := solana.PrivateKey(privateKeyBytes)
 
 	// Set up transaction parameters
-	receiver, err := solana.PublicKeyFromBase58("RECEIVER_PUBKEY")
+	receiver, err := solana.PublicKeyFromBase58("RECIEVER_KEY")
 	if err != nil {
 		log.Fatalf("Failed to parse receiver public key: %v", err)
 	}
@@ -108,22 +110,20 @@ func main() {
 		log.Fatalf("Failed to sign transaction: %v", err)
 	}
 
-	// Serialize and base58 encode the signed transaction
+	// Serialize and base64 encode the signed transaction
 	serializedTx, err := tx.MarshalBinary()
 	if err != nil {
 		log.Fatalf("Failed to serialize transaction: %v", err)
 	}
-	base58EncodedTx := base58.Encode(serializedTx)
-
-	// Prepare the transaction request
-	txnRequest := []string{base58EncodedTx}
+	base64EncodedTx := base64.StdEncoding.EncodeToString(serializedTx)
 
 	// Send the transaction
-	fmt.Printf("Sending transaction request (bundleOnly=%v): %s\n", bundleOnly, txnRequest)
+	fmt.Printf("Sending transaction request (bundleOnly=%v): %s\n", bundleOnly, base64EncodedTx)
 	var txSignature string
 
 	if bundleOnly {
-		bundleRequest := [][]string{txnRequest}
+		// Create a bundle with the transaction
+		bundleRequest := [][]string{{base64EncodedTx}}
 		result, err := jitoClient.SendBundle(bundleRequest)
 		if err != nil {
 			log.Fatalf("Failed to send bundle: %v", err)
@@ -131,10 +131,11 @@ func main() {
 		if err := json.Unmarshal(result, &txSignature); err != nil {
 			log.Fatalf("Failed to unmarshal bundle ID: %v", err)
 		}
+		
 		fmt.Printf("Bundle sent successfully. Bundle ID: %s\n", txSignature)
 		checkBundleStatus(jitoClient, txSignature)
 	} else {
-		result, err := jitoClient.SendTxn(txnRequest, false)
+		result, err := jitoClient.SendTxn(base64EncodedTx, false)
 		if err != nil {
 			log.Fatalf("Failed to send transaction: %v", err)
 		}
@@ -212,7 +213,7 @@ func checkTransactionStatus(solanaClient *rpc.Client, txSignature string) {
 	var sig solana.Signature
 	copy(sig[:], sigBytes)
 
-	for i := 0; i < 120; i++ { // Increased max attempts to allow more time for 30 confirmations
+	for i := 0; i < 120; i++ { 
 		time.Sleep(1 * time.Second)
 		status, err := solanaClient.GetSignatureStatuses(context.Background(), true, sig)
 		if err != nil {

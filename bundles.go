@@ -1,9 +1,11 @@
 package jitorpc
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"math/rand"
+	"net/http"
 )
 
 type TipAccount struct {
@@ -72,12 +74,77 @@ func (c *JitoJsonRpcClient) GetBundleStatuses(bundleIds []string) (*BundleStatus
 	return &response, nil
 }
 
-func (c *JitoJsonRpcClient) SendBundle(params interface{}) (json.RawMessage, error) {
-	endpoint := "/bundles"
-	if c.UUID != "" {
-		endpoint = fmt.Sprintf("%s?uuid=%s", endpoint, c.UUID)
+func (c *JitoJsonRpcClient) SendBundle(bundleTransactions [][]string) (json.RawMessage, error) {
+    url := fmt.Sprintf("%s/bundles", c.BaseURL)
+    if c.UUID != "" {
+        url = fmt.Sprintf("%s?uuid=%s", url, c.UUID)
+    }
+
+    var transactions []string
+    for _, txGroup := range bundleTransactions {
+        transactions = append(transactions, txGroup...)
+    }
+
+    request := struct {
+        JsonRpc string        `json:"jsonrpc"`
+        ID      int           `json:"id"`
+        Method  string        `json:"method"`
+        Params  []interface{} `json:"params"`
+    }{
+        JsonRpc: "2.0",
+        ID:      1,
+        Method:  "sendBundle",
+        Params: []interface{}{
+            transactions,
+            map[string]string{"encoding": "base64"},
+        },
+    }
+
+	requestBody, err := json.Marshal(request)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling request: %w", err)
 	}
-	return c.sendRequest(endpoint, "sendBundle", params)
+
+	if c.isDebugEnabled() {
+		fmt.Printf("Sending request to: %s\n", url)
+		fmt.Printf("Request body: %s\n", string(requestBody))
+	}
+
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(requestBody))
+	if err != nil {
+		return nil, fmt.Errorf("error creating request: %w", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	if c.UUID != "" {
+		req.Header.Set("x-jito-auth", c.UUID)
+	}
+
+	resp, err := c.Client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("error sending request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if c.isDebugEnabled() {
+		fmt.Printf("Response status: %s\n", resp.Status)
+	}
+
+	var jsonResp JsonRpcResponse
+	err = json.NewDecoder(resp.Body).Decode(&jsonResp)
+	if err != nil {
+		return nil, fmt.Errorf("error decoding response: %w", err)
+	}
+
+	if jsonResp.Error != nil {
+		return nil, fmt.Errorf("RPC error: %s", jsonResp.Error.Message)
+	}
+
+	if c.isDebugEnabled() {
+		fmt.Printf("Response body: %s\n", string(jsonResp.Result))
+	}
+
+	return jsonResp.Result, nil
 }
 
 func (c *JitoJsonRpcClient) GetInflightBundleStatuses(params interface{}) (json.RawMessage, error) {

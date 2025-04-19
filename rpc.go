@@ -10,11 +10,33 @@ import (
 func (c *JitoJsonRpcClient) sendRequest(endpoint, method string, params interface{}) (json.RawMessage, error) {
 	url := fmt.Sprintf("%s%s", c.BaseURL, endpoint)
 
+	var requestParams interface{} = params
+	
+	if method == "sendBundle" {
+		// Extract the transactions array from the nested bundle structure
+		if bundleData, ok := params.([][]string); ok && len(bundleData) > 0 {
+			requestParams = []interface{}{
+				bundleData[0],
+				map[string]string{"encoding": "base64"},
+			}
+		}
+	} else if method == "sendTransaction" {
+		switch v := params.(type) {
+		case []interface{}:
+			requestParams = append(v, map[string]string{"encoding": "base64"})
+		case string:
+			requestParams = []interface{}{v, map[string]string{"encoding": "base64"}}
+		default:
+			requestParams = []interface{}{params, map[string]string{"encoding": "base64"}}
+		}
+	}
+
+	// Create the JSON-RPC request
 	request := JsonRpcRequest{
 		JsonRpc: "2.0",
 		ID:      1,
 		Method:  method,
-		Params:  params,
+		Params:  requestParams,
 	}
 
 	requestBody, err := json.Marshal(request)

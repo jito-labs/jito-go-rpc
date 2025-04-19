@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -11,7 +12,6 @@ import (
 	"github.com/gagliardetto/solana-go/programs/system"
 	"github.com/gagliardetto/solana-go/rpc"
 	jitorpc "github.com/jito-labs/jito-go-rpc"
-	"github.com/mr-tron/base58"
 )
 
 func main() {
@@ -20,6 +20,8 @@ func main() {
 
 	// Initialize Jito client
 	jitoClient := jitorpc.NewJitoJsonRpcClient("https://mainnet.block-engine.jito.wtf/api/v1", "")
+	debug := true
+	jitoClient.Debug= &debug
 
 	// Load wallet from local path
 	walletPath := "/path/to/wallet.json"
@@ -112,7 +114,7 @@ func createTipTransaction(privateKey solana.PrivateKey, amount uint64, recentBlo
 }
 
 func createMainTransaction(privateKey solana.PrivateKey, recentBlockhash solana.Hash) (*solana.Transaction, error) {
-	receiver, err := solana.PublicKeyFromBase58("RECIEVER_PUBKEY")
+	receiver, err := solana.PublicKeyFromBase58("RECIEVE_KEY")
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse receiver public key: %v", err)
 	}
@@ -153,7 +155,7 @@ func encodeTransaction(tx *solana.Transaction) string {
 	if err != nil {
 		log.Fatalf("Failed to serialize transaction: %v", err)
 	}
-	return base58.Encode(serializedTx)
+	return base64.StdEncoding.EncodeToString(serializedTx)
 }
 
 func createMemoInstruction(message string) solana.Instruction {

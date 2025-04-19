@@ -1,6 +1,6 @@
 module github.com/jito-labs/jito-go-rpc
 
-go 1.22.2
+go 1.24
 
 require (
 	github.com/gagliardetto/solana-go v1.11.0
