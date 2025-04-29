@@ -1,6 +1,6 @@
 # jito-go-rpc
 
-[![Discord](https://img.shields.io/discord/938287290806042626?label=Discord&logo=discord&style=flat&color=7289DA)](https://discord.gg/jTSmEzaR)
+[![Discord](https://img.shields.io/discord/938287290806042626?label=Discord&logo=discord&style=flat&color=7289DA)](https://discord.gg/WeAMhmaZ)
 ![Go](https://img.shields.io/badge/Go-1.22.2-blue?logo=go&logoColor=white)
 
 The Jito JSON-RPC Go SDK provides an interface for interacting with Jito's enhanced Solana infrastructure. This SDK supports methods for managing bundles and transactions, offering improved performance and additional features while interacting with the Block Engine.
