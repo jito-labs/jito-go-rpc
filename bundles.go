@@ -56,7 +56,7 @@ func (c *JitoJsonRpcClient) GetRandomTipAccount() (*TipAccount, error) {
 }
 
 func (c *JitoJsonRpcClient) GetBundleStatuses(bundleIds []string) (*BundleStatusResponse, error) {
-	endpoint := "/bundles"
+	endpoint := "/getBundleStatuses"
 	if c.UUID != "" {
 		endpoint = fmt.Sprintf("%s?uuid=%s", endpoint, c.UUID)
 	}
@@ -148,7 +148,7 @@ func (c *JitoJsonRpcClient) SendBundle(bundleTransactions [][]string) (json.RawM
 }
 
 func (c *JitoJsonRpcClient) GetInflightBundleStatuses(params interface{}) (json.RawMessage, error) {
-	endpoint := "/bundles"
+	endpoint := "/getInflightBundleStatuses"
 	if c.UUID != "" {
 		endpoint = fmt.Sprintf("%s?uuid=%s", endpoint, c.UUID)
 	}
