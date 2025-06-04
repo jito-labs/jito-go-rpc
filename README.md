@@ -16,6 +16,9 @@ The Jito JSON-RPC Go SDK provides an interface for interacting with Jito's enhan
 ### Transactions
 - `SendTransaction`: Submit transactions with enhanced priority and speed.
 
+### Tip Floors
+- `GetTipFloors`: Get the tip floors for recent tip amounts.
+
 ## Installation
 
 ### Prerequisites
@@ -96,6 +99,30 @@ To run the basic bundle example:
    ```
 
 These examples demonstrate how to set up and run basic transactions and bundles using the Jito Go RPC SDK. Make sure to replace the wallet path and receiver key with your actual values.
+
+### Tip Floors Example
+
+To run the tip floors example:
+
+1. Ensure your environment is set up in `examples/tip/main.go`:
+
+   ```go
+   // Initialize Jito client
+   jitoClient := jitorpc.NewJitoJsonRpcClient("https://bundles.jito.wtf/api/v1", "")
+   debug := true
+   jitoClient.Debug = &debug
+
+   // Get the tip floor
+   tipFloors, err := jitoClient.GetTipFloors()
+   if err != nil {
+       log.Fatalf("Failed to get tip floors: %v", err)
+   }
+   ```
+
+2. Run the example:
+   ```bash
+   go run examples/tip/main.go
+   ```
 
 ## Contributing
 

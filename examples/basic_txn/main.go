@@ -25,7 +25,7 @@ func main() {
 	// Initialize Jito client
 	jitoClient := jitorpc.NewJitoJsonRpcClient("https://mainnet.block-engine.jito.wtf/api/v1", "")
 	debug := true
-	jitoClient.Debug= &debug
+	jitoClient.Debug = &debug
 	// Load wallet from local path
 	walletPath := "/path/to/wallet.json"
 	walletData, err := os.ReadFile(walletPath)
@@ -131,7 +131,7 @@ func main() {
 		if err := json.Unmarshal(result, &txSignature); err != nil {
 			log.Fatalf("Failed to unmarshal bundle ID: %v", err)
 		}
-		
+
 		fmt.Printf("Bundle sent successfully. Bundle ID: %s\n", txSignature)
 		checkBundleStatus(jitoClient, txSignature)
 	} else {
@@ -213,7 +213,7 @@ func checkTransactionStatus(solanaClient *rpc.Client, txSignature string) {
 	var sig solana.Signature
 	copy(sig[:], sigBytes)
 
-	for i := 0; i < 120; i++ { 
+	for i := 0; i < 120; i++ {
 		time.Sleep(1 * time.Second)
 		status, err := solanaClient.GetSignatureStatuses(context.Background(), true, sig)
 		if err != nil {
