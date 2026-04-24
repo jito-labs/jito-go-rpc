@@ -2,10 +2,9 @@ package main
 
 import (
 	"context"
-	"encoding/base64"
-	"encoding/json"
 	"fmt"
 	"log"
+	"math/rand"
 	"time"
 
 	"github.com/gagliardetto/solana-go"
@@ -19,9 +18,11 @@ func main() {
 	solanaClient := rpc.New("https://api.mainnet-beta.solana.com")
 
 	// Initialize Jito client
-	jitoClient := jitorpc.NewJitoJsonRpcClient("https://mainnet.block-engine.jito.wtf/api/v1", "")
-	debug := true
-	jitoClient.Debug= &debug
+	jitoClient := jitorpc.NewJito(
+		jitorpc.WithRegion(jitorpc.GetRegions()[0]),
+		jitorpc.WithRPS(1),
+		jitorpc.WithXJitoAuth(""),
+	)
 
 	// Load wallet from local path
 	walletPath := "/path/to/wallet.json"
@@ -37,17 +38,13 @@ func main() {
 	}
 
 	// Get random tip account
-	tipAccount, err := jitoClient.GetRandomTipAccount()
+	tipAccounts, err := jitoClient.GetTipAccounts(context.Background())
 	if err != nil {
 		log.Fatalf("Failed to get random tip account: %v", err)
 	}
+	tipAccount := tipAccounts[rand.Intn(len(tipAccounts))]
 
-	// Create tip transaction
 	tipAmount := uint64(1000) // lamports
-	tipTx, err := createTipTransaction(privateKey, tipAmount, latestBlockhash.Value.Blockhash, tipAccount.Address)
-	if err != nil {
-		log.Fatalf("Failed to create tip transaction: %v", err)
-	}
 
 	// Create main transaction
 	mainTx, err := createMainTransaction(privateKey, latestBlockhash.Value.Blockhash)
@@ -55,62 +52,25 @@ func main() {
 		log.Fatalf("Failed to create main transaction: %v", err)
 	}
 
-	// Prepare the bundle request
-	bundleRequest := [][]string{{
-		encodeTransaction(tipTx),
-		encodeTransaction(mainTx),
-	}}
-
 	// Send the bundle
-	fmt.Printf("Sending bundle request: %v\n", bundleRequest)
-	bundleIdRaw, err := jitoClient.SendBundle(bundleRequest)
+	bundleID, err := jitoClient.SendBundle(
+		context.TODO(),
+		[]*solana.Transaction{mainTx},
+		latestBlockhash.Value.Blockhash,
+		jitorpc.WithTransactionTip(
+			privateKey,
+			tipAccount,
+			tipAmount,
+		),
+	)
 	if err != nil {
 		log.Fatalf("Failed to send bundle: %v", err)
 	}
 
-	var bundleId string
-	if err := json.Unmarshal(bundleIdRaw, &bundleId); err != nil {
-		log.Fatalf("Failed to unmarshal bundle ID: %v", err)
-	}
-
-	fmt.Printf("Bundle sent successfully. Bundle ID: %s\n", bundleId)
+	fmt.Printf("Bundle sent successfully. Bundle ID: %s\n", bundleID)
 
 	// Check the bundle status
-	checkBundleStatus(jitoClient, bundleId)
-}
-
-func createTipTransaction(privateKey solana.PrivateKey, amount uint64, recentBlockhash solana.Hash, tipAddress string) (*solana.Transaction, error) {
-	tipAccount, err := solana.PublicKeyFromBase58(tipAddress)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse tip account: %v", err)
-	}
-
-	tx, err := solana.NewTransaction(
-		[]solana.Instruction{
-			system.NewTransferInstruction(
-				amount,
-				privateKey.PublicKey(),
-				tipAccount,
-			).Build(),
-		},
-		recentBlockhash,
-		solana.TransactionPayer(privateKey.PublicKey()),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create tip transaction: %v", err)
-	}
-
-	_, err = tx.Sign(func(key solana.PublicKey) *solana.PrivateKey {
-		if privateKey.PublicKey().Equals(key) {
-			return &privateKey
-		}
-		return nil
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to sign tip transaction: %v", err)
-	}
-
-	return tx, nil
+	checkBundleStatus(jitoClient, bundleID)
 }
 
 func createMainTransaction(privateKey solana.PrivateKey, recentBlockhash solana.Hash) (*solana.Transaction, error) {
@@ -150,14 +110,6 @@ func createMainTransaction(privateKey solana.PrivateKey, recentBlockhash solana.
 	return tx, nil
 }
 
-func encodeTransaction(tx *solana.Transaction) string {
-	serializedTx, err := tx.MarshalBinary()
-	if err != nil {
-		log.Fatalf("Failed to serialize transaction: %v", err)
-	}
-	return base64.StdEncoding.EncodeToString(serializedTx)
-}
-
 func createMemoInstruction(message string) solana.Instruction {
 	memoProgramID, _ := solana.PublicKeyFromBase58("MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr")
 	return solana.NewInstruction(
@@ -167,14 +119,14 @@ func createMemoInstruction(message string) solana.Instruction {
 	)
 }
 
-func checkBundleStatus(jitoClient *jitorpc.JitoJsonRpcClient, bundleId string) {
+func checkBundleStatus(jitoClient *jitorpc.Jito, bundleID string) {
 	maxAttempts := 60
 	pollInterval := 5 * time.Second
 
 	for attempt := 1; attempt <= maxAttempts; attempt++ {
 		time.Sleep(pollInterval)
 
-		statusResponse, err := jitoClient.GetBundleStatuses([]string{bundleId})
+		statusResponse, err := jitoClient.GetBundleStatuses(context.Background(), []string{bundleID})
 		if err != nil {
 			log.Printf("Attempt %d: Failed to get bundle status: %v", attempt, err)
 			continue
@@ -186,14 +138,14 @@ func checkBundleStatus(jitoClient *jitorpc.JitoJsonRpcClient, bundleId string) {
 		}
 
 		bundleStatus := statusResponse.Value[0]
-		log.Printf("Attempt %d: Bundle status: %s", attempt, bundleStatus.ConfirmationStatus)
+		log.Printf("Attempt %d: Bundle status: %s", attempt, bundleStatus.Status)
 
-		switch bundleStatus.ConfirmationStatus {
-		case "processed":
+		switch bundleStatus.Status {
+		case jitorpc.ConfirmationStatusProcessed:
 			fmt.Println("Bundle has been processed by the cluster. Continuing to poll...")
-		case "confirmed":
+		case jitorpc.ConfirmationStatusConfirmed:
 			fmt.Println("Bundle has been confirmed by the cluster. Continuing to poll...")
-		case "finalized":
+		case jitorpc.ConfirmationStatusFinalized:
 			fmt.Printf("Bundle has been finalized by the cluster in slot %d.\n", bundleStatus.Slot)
 			if bundleStatus.Err.Ok == nil {
 				fmt.Println("Bundle executed successfully.")
@@ -207,7 +159,7 @@ func checkBundleStatus(jitoClient *jitorpc.JitoJsonRpcClient, bundleId string) {
 			}
 			return
 		default:
-			fmt.Printf("Unexpected status: %s. Please check the bundle manually.\n", bundleStatus.ConfirmationStatus)
+			fmt.Printf("Unexpected status: %s. Please check the bundle manually.\n", bundleStatus.Status)
 			return
 		}
 	}
